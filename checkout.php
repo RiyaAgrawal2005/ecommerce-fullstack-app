@@ -1,164 +1,371 @@
-
 <?php 
 session_start();
 include 'db.php';
 
+if(!isset($_SESSION['user'])){
+    header("Location: login.php");
+    exit();
+}
+
 $user_id = $_SESSION['user'];
 
 $user = mysqli_fetch_assoc(
-    mysqli_query($conn, "SELECT address FROM users WHERE id='$user_id'")
+    mysqli_query(
+        $conn,
+        "SELECT address FROM users WHERE id='$user_id'"
+    )
 );
 ?>
+
 <!DOCTYPE html>
 <html>
 <head>
     <title>Checkout</title>
 
     <style>
-        body{font-family: Arial; background:#f5f5f5;}
+
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+            font-family:Arial,sans-serif;
+        }
+
+        body{
+            background:#f5f5f5;
+        }
+
         .box{
             width:60%;
             margin:30px auto;
             background:#fff;
-            padding:20px;
-            border-radius:10px;
+            padding:25px;
+            border-radius:12px;
+            box-shadow:0 3px 10px rgba(0,0,0,0.1);
         }
+
+        h2{
+            margin-bottom:20px;
+        }
+
+        h3{
+            margin-top:20px;
+            margin-bottom:10px;
+        }
+
         .item{
             display:flex;
             justify-content:space-between;
-            padding:10px 0;
+            align-items:center;
+            padding:15px 0;
             border-bottom:1px solid #eee;
         }
+
+        .item span{
+            font-size:15px;
+        }
+
+        #total{
+            margin-top:20px;
+            color:#111827;
+        }
+
         button{
             margin-top:20px;
             padding:12px 25px;
-            background:#007bff;
+            background:#7c3aed;
             color:white;
             border:none;
-            border-radius:6px;
+            border-radius:8px;
             cursor:pointer;
+            font-size:15px;
+            font-weight:bold;
         }
+
+        button:hover{
+            opacity:0.9;
+        }
+
+        #address{
+            background:#f9fafb;
+            padding:12px;
+            border-radius:8px;
+            line-height:1.5;
+        }
+
+        @media(max-width:768px){
+
+            .box{
+                width:95%;
+            }
+
+            .item{
+                flex-direction:column;
+                align-items:flex-start;
+                gap:8px;
+            }
+        }
+
     </style>
 </head>
+
 <body>
 
 <div class="box">
 
-<h2>🧾 Checkout (Review Order)</h2>
+    <h2>🧾 Checkout (Review Order)</h2>
 
-<!-- <h3>📍 Address:</h3>
-<p id="address"></p> -->
+    <!-- ADDRESS -->
 
-<h3>📍 Address:</h3>
-<p id="address"></p>
+    <h3>📍 Delivery Address</h3>
 
-<button onclick="changeAddress()">Change Address</button>
+    <p id="address"></p>
 
-<div id="items"></div>
-<h3 id="total"></h3>
+    <button onclick="changeAddress()">
+        Change Address
+    </button>
 
-<button onclick="goPayment()">Proceed to Payment 💳</button>
+    <!-- ITEMS -->
+
+    <h3>🛒 Order Items</h3>
+
+    <div id="items"></div>
+
+    <!-- TOTAL -->
+
+    <h3 id="total"></h3>
+
+    <!-- PAYMENT -->
+
+    <button onclick="goPayment()">
+        Proceed to Payment 💳
+    </button>
 
 </div>
 
 <script>
 
+/* ================= CHANGE ADDRESS ================= */
 
 function changeAddress(){
-    let newAddress = prompt("Enter new address:");
+
+    let newAddress =
+    prompt("Enter new address:");
 
     if(newAddress){
 
-        localStorage.setItem("address", newAddress);
-        document.getElementById("address").innerText = newAddress;
+        localStorage.setItem(
+            "address",
+            newAddress
+        );
 
-        // SAVE TO DB
+        document.getElementById("address")
+        .innerText = newAddress;
+
+        /* SAVE ADDRESS IN DATABASE */
+
         fetch("update_address.php", {
-            method: "POST",
-            headers: {"Content-Type":"application/x-www-form-urlencoded"},
-            body: "address=" + encodeURIComponent(newAddress)
+
+            method:"POST",
+
+            headers:{
+                "Content-Type":
+                "application/x-www-form-urlencoded"
+            },
+
+            body:
+            "address=" +
+            encodeURIComponent(newAddress)
         });
     }
 }
 
-// 📦 Products
+/* ================= PRODUCTS ================= */
+
 let products = <?php
-include 'db.php';
-$result = mysqli_query($conn, "SELECT * FROM products");
+
+$result = mysqli_query(
+    $conn,
+    "SELECT * FROM products"
+);
+
 $data = [];
+
 while($row = mysqli_fetch_assoc($result)){
+
     $data[] = $row;
 }
+
 echo json_encode($data);
+
 ?>;
 
-// 🛒 Data
-let cart = JSON.parse(localStorage.getItem("cart")) || [];
-let buyNow = JSON.parse(localStorage.getItem("buyNow"));
-// let address = localStorage.getItem("address");
+/* ================= GET URL TYPE ================= */
 
-// document.getElementById("address").innerText = address || "No address found";
+let urlParams =
+new URLSearchParams(window.location.search);
 
-let dbAddress = `<?php echo $user['address']; ?>`;
-let address = localStorage.getItem("address") || dbAddress;
+let type = urlParams.get("type");
 
-document.getElementById("address").innerText = address || "No address found";
+/* ================= LOCAL STORAGE DATA ================= */
 
+let cart =
+JSON.parse(localStorage.getItem("cart")) || [];
+
+let buyNow =
+JSON.parse(localStorage.getItem("buyNow"));
+
+/* ================= ADDRESS ================= */
+
+let dbAddress =
+`<?php echo $user['address']; ?>`;
+
+let address =
+localStorage.getItem("address")
+|| dbAddress;
+
+document.getElementById("address")
+.innerText =
+address || "No address found";
+
+/* ================= ITEMS CONTAINER ================= */
 
 let total = 0;
-let container = document.getElementById("items");
 
-// ⚡ BUY NOW
-if(buyNow){
-    let p = products.find(x => Number(x.id) === Number(buyNow.id));
+let container =
+document.getElementById("items");
+
+/* =====================================================
+   BUY NOW FLOW
+===================================================== */
+
+if(type === "buyNow" && buyNow){
+
+    let p = products.find(x =>
+        Number(x.id) === Number(buyNow.id)
+    );
 
     if(p){
-        let price = Number(p.discount_price || p.price);
-        total += price;
+
+        let qty = buyNow.qty || 1;
+
+        let price =
+        Number(p.discount_price || p.price);
+
+        total += price * qty;
 
         container.innerHTML += `
+
             <div class="item">
-                <span>${p.name} (${buyNow.size})</span>
-                <span>₹${price}</span>
+
+                <span>
+                    ${p.name}
+                    (${buyNow.size})
+                    x ${qty}
+                </span>
+
+                <span>
+                    ₹${price * qty}
+                </span>
+
             </div>
+
         `;
 
+        /* FINAL ORDER DATA */
+
         cart = [{
+
             id: buyNow.id,
+
             size: buyNow.size,
-            qty: 1
+
+            qty: qty
+
         }];
     }
+
 }
 
-// 🛒 CART
+/* =====================================================
+   NORMAL CART FLOW
+===================================================== */
+
 else{
+
+    if(cart.length === 0){
+
+        container.innerHTML = `
+            <p>Your cart is empty 🛒</p>
+        `;
+    }
+
     cart.forEach(item => {
-        let p = products.find(x => Number(x.id) === Number(item.id));
+
+        let p = products.find(x =>
+            Number(x.id) === Number(item.id)
+        );
 
         if(p){
-            let price = Number(p.discount_price || p.price);
-            total += price * item.qty;
+
+            let qty = item.qty || 1;
+
+            let price =
+            Number(p.discount_price || p.price);
+
+            total += price * qty;
 
             container.innerHTML += `
+
                 <div class="item">
-                    <span>${p.name} (${item.size}) x ${item.qty}</span>
-                    <span>₹${price * item.qty}</span>
+
+                    <span>
+                        ${p.name}
+                        (${item.size})
+                        x ${qty}
+                    </span>
+
+                    <span>
+                        ₹${price * qty}
+                    </span>
+
                 </div>
+
             `;
         }
+
     });
+
 }
 
-// 💰 Total
-document.getElementById("total").innerText = "Total: ₹" + total;
+/* ================= TOTAL ================= */
 
-// 👉 GO TO PAYMENT
+document.getElementById("total")
+.innerText =
+"Total: ₹" + total;
+
+/* ================= PAYMENT ================= */
+
 function goPayment(){
-    localStorage.setItem("finalTotal", total);
-    localStorage.setItem("finalCart", JSON.stringify(cart));
 
-    window.location.href = "payment.php";
+    if(total <= 0){
+
+        alert("Cart is empty!");
+        return;
+    }
+
+    localStorage.setItem(
+        "finalTotal",
+        total
+    );
+
+    localStorage.setItem(
+        "finalCart",
+        JSON.stringify(cart)
+    );
+
+    window.location.href =
+    "payment.php";
 }
 
 </script>

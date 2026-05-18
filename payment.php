@@ -54,49 +54,201 @@
 <body>
 
 <div class="container">
+
     <h2>💳 Payment</h2>
 
-    <!-- Order Summary -->
+    <!-- ORDER SUMMARY -->
     <div class="summary">
-        <h3>Total Amount: ₹<?php echo $_POST['total']; ?></h3>
+        <h3 id="showTotal"></h3>
     </div>
 
-    <form action="place_order.php" method="POST">
+    <!-- PAYMENT FORM -->
 
-        <!-- Pass all data forward -->
-        <input type="hidden" name="name" value="<?php echo $_POST['name']; ?>">
-        <input type="hidden" name="phone" value="<?php echo $_POST['phone']; ?>">
-        <input type="hidden" name="address" value="<?php echo $_POST['address']; ?>">
-        <input type="hidden" name="city" value="<?php echo $_POST['city']; ?>">
-        <input type="hidden" name="pincode" value="<?php echo $_POST['pincode']; ?>">
-        <input type="hidden" name="total" value="<?php echo $_POST['total']; ?>">
-        
+    <form action="place_order.php" method="POST" id="paymentForm">
+
+        <!-- USER DETAILS -->
+
+        <input type="hidden" name="name"
+        value="<?php echo $_POST['name'] ?? ''; ?>">
+
+        <input type="hidden" name="phone"
+        value="<?php echo $_POST['phone'] ?? ''; ?>">
+
+        <input type="hidden" name="address"
+        value="<?php echo $_POST['address'] ?? ''; ?>">
+
+        <input type="hidden" name="city"
+        value="<?php echo $_POST['city'] ?? ''; ?>">
+
+        <input type="hidden" name="pincode"
+        value="<?php echo $_POST['pincode'] ?? ''; ?>">
+
+        <!-- TOTAL -->
+        <input type="hidden" name="total" id="hiddenTotal">
+
+        <!-- CART -->
         <input type="hidden" name="cart" id="cartData">
+
+        <!-- PAYMENT METHOD -->
+
         <label>Select Payment Method</label>
 
-        <select name="payment_method" required>
+        <select name="payment_method" id="paymentMethod" required>
+
             <option value="">-- Select --</option>
-            <option>Cash on Delivery</option>
-            <option>UPI</option>
-            <option>Debit/Credit Card</option>
+
+            <option value="Cash on Delivery">
+                Cash on Delivery
+            </option>
+
+            <option value="UPI">
+                UPI
+            </option>
+
+            <option value="Debit/Credit Card">
+                Debit/Credit Card
+            </option>
+
         </select>
 
-        <button type="submit">Place Order ✅</button>
+        <button type="submit">
+            Place Order ✅
+        </button>
+
     </form>
+
 </div>
 
+<!-- RAZORPAY -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
 <script>
-let cart = localStorage.getItem("cart");
 
-// also handle Buy Now
-let buyNow = localStorage.getItem("buyNow");
+/* =========================
+   LOAD TOTAL
+========================= */
 
+let total =
+localStorage.getItem("finalTotal") || 0;
+
+document.getElementById("showTotal")
+.innerText = "Total Amount: ₹" + total;
+
+document.getElementById("hiddenTotal")
+.value = total;
+
+
+/* =========================
+   LOAD CART
+========================= */
+
+let finalCart =
+localStorage.getItem("finalCart");
+
+let buyNow =
+localStorage.getItem("buyNow");
+
+/* BUY NOW */
 if(buyNow){
-    cart = JSON.stringify([JSON.parse(buyNow)]);
+
+    finalCart =
+    JSON.stringify([JSON.parse(buyNow)]);
 }
 
-document.getElementById("cartData").value = cart;
+/* SAVE CART */
+document.getElementById("cartData")
+.value = finalCart || "[]";
+
+
+/* =========================
+   PAYMENT SUBMIT
+========================= */
+
+document.getElementById("paymentForm")
+.addEventListener("submit", function(e){
+
+    let method =
+    document.getElementById("paymentMethod").value;
+
+    /* NO METHOD */
+
+    if(method === ""){
+
+        alert("Please select payment method");
+
+        e.preventDefault();
+
+        return;
+    }
+
+    /* CASH ON DELIVERY */
+
+    if(method === "Cash on Delivery"){
+
+        return true;
+    }
+
+    /* ONLINE PAYMENT */
+
+    e.preventDefault();
+
+    var options = {
+
+        "key": "rzp_test_Sol65Yamt4xPaw",
+
+        "amount": total * 100,
+
+        "currency": "INR",
+
+        "name": "Riya Ecommerce",
+
+        "description": "Order Payment",
+
+        "method": {
+            "upi": true,
+            "card": true,
+            "netbanking": true,
+            "wallet": true
+        },
+
+        "handler": function (response){
+
+            alert("✅ Payment Successful!");
+
+            /* CREATE PAYMENT INPUT */
+
+            let input =
+            document.createElement("input");
+
+            input.type = "hidden";
+
+            input.name = "payment_id";
+
+            input.value =
+            response.razorpay_payment_id;
+
+            document
+            .getElementById("paymentForm")
+            .appendChild(input);
+
+            /* SUBMIT FORM */
+
+            document
+            .getElementById("paymentForm")
+            .submit();
+        },
+
+        "theme": {
+            "color": "#3399cc"
+        }
+    };
+
+    var rzp1 = new Razorpay(options);
+
+    rzp1.open();
+
+});
+
 </script>
 
 </body>

@@ -1,8 +1,37 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <?php
 include 'db.php';
 
 $cats = mysqli_query($conn, "SELECT * FROM categories");
 ?>
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -16,8 +45,8 @@ $cats = mysqli_query($conn, "SELECT * FROM categories");
         }
 
         .container {
-            width: 400px;
-            margin: 50px auto;
+            width: 450px;
+            margin: 10px auto;
             background: white;
             padding: 25px;
             border-radius: 10px;
@@ -26,6 +55,7 @@ $cats = mysqli_query($conn, "SELECT * FROM categories");
 
         h2 {
             text-align: center;
+            margin-bottom: 20px;
         }
 
         input, textarea, select {
@@ -34,6 +64,12 @@ $cats = mysqli_query($conn, "SELECT * FROM categories");
             margin: 8px 0;
             border-radius: 5px;
             border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+
+        textarea{
+            resize: none;
+            height: 90px;
         }
 
         button {
@@ -45,6 +81,7 @@ $cats = mysqli_query($conn, "SELECT * FROM categories");
             border-radius: 6px;
             font-size: 16px;
             cursor: pointer;
+            margin-top: 10px;
         }
 
         button:hover {
@@ -55,38 +92,62 @@ $cats = mysqli_query($conn, "SELECT * FROM categories");
             width: 100%;
             margin-top: 10px;
             border-radius: 6px;
+            display: none;
+            height: 250px;
+            object-fit: cover;
+            border: 1px solid #ddd;
+        }
+
+        .file-box{
+            border: 2px dashed #bbb;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            background: #fafafa;
+        }
+
+        .file-box input{
+            border: none;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2> Add Product</h2>
 
-    <form action="add_product.php" method="POST">
+    <h2>🛒 Add Product</h2>
+
+    <!-- IMPORTANT -->
+    <form action="add_product.php" method="POST" enctype="multipart/form-data">
 
         <input type="text" name="name" placeholder="Product Name" required>
 
         <textarea name="description" placeholder="Product Description" required></textarea>
-<!-- 
-        <select name="category" required>
-            <option value="">Select Category</option>
-            <option value="Electronics">Electronics</option>
-            <option value="Fashion">Fashion</option>
-            <option value="Beauty">Beauty</option>
-            <option value="Shoes">Shoes</option>
-            <option value="Books">Books</option>
-        </select> -->
-        <select name="category" required>
-    <option value="">Select Category</option>
+
+       
+
+
+<label><b>Select Categories</b></label>
+
+<select name="category[]" multiple required size="6">
+    <!-- <option value="">Select Category</option> -->
 
     <?php while($c = mysqli_fetch_assoc($cats)) { ?>
+
         <option value="<?php echo $c['name']; ?>">
+
             <?php echo ucfirst($c['name']); ?>
+
         </option>
+
     <?php } ?>
 
 </select>
+
+<p style="color:gray;font-size:13px;">
+Hold CTRL key to select multiple categories
+</p>
+
 
         <input type="number" name="price" placeholder="Original Price" required>
 
@@ -96,27 +157,82 @@ $cats = mysqli_query($conn, "SELECT * FROM categories");
 
         <input type="number" step="0.1" name="rating" placeholder="Rating (1-5)" value="4">
 
-        <input type="text" name="image" id="imageInput" placeholder="Image URL" required>
+        <!-- FILE UPLOAD -->
+        <div class="file-box">
+            <label><b>Upload Product Image</b></label><br><br>
 
-        <!-- Image Preview -->
-        <img id="preview" src="" style="display:none;">
+            <input 
+                type="file" 
+                name="image" 
+                id="imageInput"
+                accept="image/*"
+                required
+            ><br><br>
+
+    <!-- OPTIONAL IMAGES -->
+
+    <!-- <p>Image 2 (Optional)</p> -->
+
+    <input 
+        type="file"
+        name="image2"
+        accept="image/*"
+    ><br><br>
+
+    <!-- <p>Image 3 (Optional)</p> -->
+
+    <input 
+        type="file"
+        name="image3"
+        accept="image/*"
+    ><br><br>
+
+    <!-- <p>Image 4 (Optional)</p> -->
+
+    <input 
+        type="file"
+        name="image4"
+        accept="image/*"
+    ><br><br>
+
+    <!-- <p>Image 5 (Optional)</p> -->
+
+    <input 
+        type="file"
+        name="image5"
+        accept="image/*"
+    >
+
+            
+        </div>
+
+        <!-- IMAGE PREVIEW -->
+        <img id="preview">
 
         <button type="submit">Add Product</button>
+
     </form>
 </div>
 
 <script>
-document.getElementById("imageInput").addEventListener("input", function(){
-    let url = this.value;
+
+document.getElementById("imageInput")
+.addEventListener("change", function(e){
+
+    let file = e.target.files[0];
+
     let preview = document.getElementById("preview");
 
-    if(url){
+    if(file){
+
         preview.style.display = "block";
-        preview.src = url;
-    } else {
-        preview.style.display = "none";
+
+        preview.src = URL.createObjectURL(file);
+
     }
+
 });
+
 </script>
 
 </body>

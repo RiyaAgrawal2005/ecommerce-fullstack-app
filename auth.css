@@ -10,6 +10,7 @@ body {
 
 /* Container */
 .container {
+    margin-top: 150px;
     background: white;
     padding: 30px;
     width: 320px;

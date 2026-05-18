@@ -14,6 +14,64 @@ body{
     border-radius: 10px;
 }
 
+
+
+/* IMAGE SLIDER */
+
+.image-slider{
+    position:relative;
+    width:100%;
+}
+
+/* ARROWS */
+
+.slider-btn{
+    position:absolute;
+    top:45%;
+    transform:translateY(-50%);
+    width:42px;
+    height:42px;
+    border:none;
+    border-radius:50%;
+    background:rgba(0,0,0,0.5);
+    color:white;
+    font-size:22px;
+    cursor:pointer;
+    z-index:10;
+}
+
+.left-btn{
+    left:10px;
+}
+
+.right-btn{
+    right:10px;
+}
+
+/* DOTS */
+
+.dots{
+    display:flex;
+    justify-content:center;
+    gap:8px;
+    margin-top:12px;
+}
+
+.dot{
+    width:10px;
+    height:10px;
+    border-radius:50%;
+    background:#ccc;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+.dot.active{
+    background:#7c3aed;
+}
+
+
+
 .desc{
     color: gray;
 }

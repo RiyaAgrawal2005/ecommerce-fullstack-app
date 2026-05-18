@@ -38,6 +38,7 @@ body {
 
 .sidebar li a{
  text-decoration: none;
+ color: wheat;
 }
 
 .sidebar li:hover,

@@ -1,121 +1,24 @@
-<!-- 
+
+
+
+
+
+
+
 <?php
 session_start();
+include 'db.php';
 
 // ❗ Force logout if user comes back
-if(isset($_SESSION['user'])){
-    session_unset();
-    session_destroy();
-}
+// if(isset($_SESSION['user'])){
+//     session_unset();
+//     session_destroy();
+// }
 
-include 'db.php';
+
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 ?>
-
-<!DOCTYPE html>
-<html>
-<head>
-    <title>ShopEasy</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-
-<header>
-    <h1>ShopEasy</h1>
-
-    <nav>
-        <a href="index.php">Home</a>
-
-        <?php if(isset($_SESSION['user'])){ ?>
-            <a href="cart.php">Cart 🛒</a>
-            <a href="user_dashboard.php">My Account</a>
-            <a href="logout.php">Logout</a>
-        <?php } else { ?>
-            <a href="login.php">Login</a>
-        <?php } ?>
-    </nav>
-</header>
-
-<section class="products">
-
-<?php
-$result = mysqli_query($conn, "SELECT * FROM products");
-
-while($row = mysqli_fetch_assoc($result)){
-?>
-<div class="card">
-    <img src="<?php echo $row['image']; ?>">
-
-    <h3><?php echo $row['name']; ?></h3>
-
-    <p class="desc">
-        <?php echo substr($row['description'], 0, 60); ?>...
-    </p>
-
-    <p class="price">
-        ₹<?php echo $row['discount_price']; ?>
-        <span class="old-price">₹<?php echo $row['price']; ?></span>
-    </p>
-
-    <p class="rating">⭐ <?php echo $row['rating']; ?></p>
-
-    <p class="stock">
-        <?php echo ($row['stock'] > 0) ? "In Stock" : "Out of Stock"; ?>
-    </p>
-
-    <button onclick="handleCart(<?php echo $row['id']; ?>)">
-        Add to Cart
-    </button>
-
-    <button onclick="handleWishlist(<?php echo $row['id']; ?>)">
-        ❤️ Wishlist
-    </button>
-
-    <button onclick="viewProduct(<?php echo $row['id']; ?>)">
-        View Details
-    </button>
-</div>
-<?php } ?>
-
-</section>
-
-<script>
-function handleCart(id){
-    let isLoggedIn = <?php echo isset($_SESSION['user']) ? 'true' : 'false'; ?>;
-
-    if(!isLoggedIn){
-        alert("Please login first");
-        window.location.href = "login.php";
-    } else {
-        window.location.href = "add_to_cart.php?id=" + id;
-    }
-}
-
-function handleWishlist(id){
-    let isLoggedIn = <?php echo isset($_SESSION['user']) ? 'true' : 'false'; ?>;
-
-    if(!isLoggedIn){
-        alert("Please login first");
-        window.location.href = "login.php";
-    } else {
-        window.location.href = "add_to_wishlist.php?id=" + id;
-    }
-}
-
-function viewProduct(id){
-    window.location.href = "product.php?id=" + id;
-}
-</script>
-
-</body>
-</html> -->
-
-
-
-
-
-
-
-
 
 <!DOCTYPE html>
 <html>

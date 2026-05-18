@@ -1,6 +1,6 @@
-<!-- only img is display in left and below it tabs -  -->
 <?php
 session_start();
+
 if(!isset($_SESSION['user'])){
     header("Location: login.php");
     exit();
@@ -10,363 +10,694 @@ include 'db.php';
 
 $user_id = $_SESSION['user'];
 
-/* Fetch user data */
 $user = mysqli_fetch_assoc(
     mysqli_query($conn, "SELECT * FROM users WHERE id='$user_id'")
 );
 
-/* Fetch orders */
-$orders = mysqli_query(
-    $conn,
-    "SELECT * FROM orders WHERE user_id='$user_id' ORDER BY id DESC"
+/* TOTAL ORDERS */
+$total_orders = mysqli_fetch_assoc(
+    mysqli_query(
+        $conn,
+        "SELECT COUNT(*) as total FROM orders WHERE user_id='$user_id'"
+    )
 );
+
+/* WISHLIST ITEMS */
+$total_wishlist = mysqli_fetch_assoc(
+    mysqli_query(
+        $conn,
+        "SELECT COUNT(*) as total 
+         FROM wishlist 
+         WHERE user_id='$user_id'"
+    )
+);
+
+/* CART ITEMS */
+// $total_cart = mysqli_fetch_assoc(
+//     mysqli_query(
+//         $conn,
+//         "SELECT COUNT(*) as total 
+//          FROM cart 
+//          WHERE user_id='$user_id'"
+//     )
+// );
+
+/* CART ITEMS */
+$total_cart = ['total' => 0];
+
+/* TOTAL SPENT */
+$total_spent = mysqli_fetch_assoc(
+    mysqli_query(
+        $conn,
+        "SELECT SUM(total) as amount 
+         FROM orders 
+         WHERE user_id='$user_id'
+         AND status='Delivered'"
+    )
+);
+
+?>
+
+
+<?php
+$products = mysqli_query($conn, "SELECT * FROM products");
 ?>
 
 <!DOCTYPE html>
 <html>
 <head>
-    <title>User Dashboard</title>
-    <link rel="stylesheet" href="dashboard.css">
+<title>User Dashboard</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial;
+}
+
+body{
+    background:#f4f7fb;
+}
+
+/* DASHBOARD */
+
+.dashboard{
+    display:flex;
+    min-height:100vh;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+    width:270px;
+    background:#111827;
+    color:white;
+    padding:25px 20px;
+    position:sticky;
+    top:0;
+    height:100vh;
+}
+
+.logo{
+    font-size:26px;
+    font-weight:bold;
+    margin-bottom:30px;
+}
+
+/* PROFILE */
+
+.profile-box{
+    text-align:center;
+    margin-bottom:30px;
+}
+
+.profile-img{
+    width:90px;
+    height:90px;
+    border-radius:50%;
+    margin-bottom:10px;
+    border:4px solid #7c3aed;
+}
+
+.profile-box h3{
+    font-size:20px;
+}
+
+.profile-box p{
+    color:#cbd5e1;
+    font-size:14px;
+    margin-top:5px;
+}
+
+/* MENU */
+
+.sidebar ul{
+    list-style:none;
+}
+
+.sidebar ul li{
+    margin-bottom:12px;
+}
+
+.sidebar ul li a{
+    display:block;
+    padding:14px;
+    border-radius:10px;
+    text-decoration:none;
+    color:white;
+    transition:0.3s;
+    font-size:15px;
+}
+
+.sidebar ul li a:hover,
+.sidebar ul li.active a{
+    background:#7c3aed;
+}
+
+/* MAIN */
+
+.main{
+    flex:1;
+    padding:25px;
+}
+
+/* TOPBAR */
+
+.topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:25px;
+    gap:20px;
+}
+
+.search-box{
+    flex:1;
+}
+
+.search-box input{
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:12px;
+    background:white;
+    box-shadow:0 2px 10px rgba(0,0,0,0.06);
+    font-size:15px;
+}
+
+.welcome{
+    font-size:22px;
+    font-weight:bold;
+}
+
+/* STATS */
+
+.stats{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:20px;
+    margin-bottom:30px;
+}
+
+.stat-card{
+    background:white;
+    border-radius:16px;
+    padding:25px;
+    box-shadow:0 4px 15px rgba(0,0,0,0.05);
+}
+
+.stat-card h2{
+    margin-top:10px;
+    color:#7c3aed;
+}
+
+/* CATEGORIES */
+
+.categories{
+    display:flex;
+    gap:18px;
+    overflow-x:auto;
+    margin-bottom:35px;
+    padding-bottom:10px;
+}
+
+.cat{
+    min-width:90px;
+    text-align:center;
+    cursor:pointer;
+}
+
+.circle{
+    width:75px;
+    height:75px;
+    border-radius:50%;
+    background:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin:auto;
+    box-shadow:0 3px 10px rgba(0,0,0,0.08);
+    overflow:hidden;
+    transition:0.3s;
+}
+
+.circle img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+.cat.active .circle,
+.cat:hover .circle{
+    transform:scale(1.08);
+    border:3px solid #7c3aed;
+}
+
+.cat p{
+    margin-top:8px;
+    font-size:14px;
+    font-weight:600;
+}
+
+/* PRODUCTS */
+
+.section-title{
+    margin-bottom:20px;
+    font-size:24px;
+}
+
+.products{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+    gap:22px;
+}
+
+/* CARD */
+
+.card{
+    background:white;
+    border-radius:18px;
+    overflow:hidden;
+    box-shadow:0 4px 15px rgba(0,0,0,0.06);
+    transition:0.3s;
+    position:relative;
+    cursor:pointer;
+}
+
+.card:hover{
+    transform:translateY(-5px);
+}
+
+.card img{
+    width:100%;
+    height:230px;
+    object-fit:cover;
+}
+
+/* INFO */
+
+.card-body{
+    padding:16px;
+}
+
+.category{
+    color:#7c3aed;
+    font-size:13px;
+    font-weight:bold;
+}
+
+.card h3{
+    margin:10px 0;
+    font-size:18px;
+}
+
+.desc{
+    color:#666;
+    font-size:14px;
+    height:40px;
+    overflow:hidden;
+}
+
+.price{
+    margin-top:12px;
+    font-size:20px;
+    font-weight:bold;
+}
+
+.old-price{
+    text-decoration:line-through;
+    color:#999;
+    font-size:14px;
+    margin-left:8px;
+}
+
+.badge{
+    position:absolute;
+    top:12px;
+    left:12px;
+    background:#ef4444;
+    color:white;
+    padding:6px 10px;
+    border-radius:20px;
+    font-size:12px;
+    font-weight:bold;
+}
+
+.delivery{
+    color:green;
+    margin-top:8px;
+    font-size:14px;
+}
+
+/* BUTTONS */
+
+.card-buttons{
+    display:flex;
+    gap:10px;
+    margin-top:15px;
+}
+
+.btn{
+    flex:1;
+    padding:10px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+.cart-btn{
+    background:#111827;
+    color:white;
+}
+
+.buy-btn{
+    background:#7c3aed;
+    color:white;
+}
+
+/* RESPONSIVE */
+
+@media(max-width:900px){
+
+    .dashboard{
+        flex-direction:column;
+    }
+
+    .sidebar{
+        width:100%;
+        height:auto;
+        position:relative;
+    }
+
+    .products{
+        grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+    }
+
+    .card img{
+        height:180px;
+    }
+}
+
+</style>
 </head>
+
 <body>
 
 <div class="dashboard">
 
     <!-- SIDEBAR -->
-    <div class="sidebar">
-        <!-- <h2>User Panel</h2> -->
-        <div class="profile-box">
-    <img src="https://ui-avatars.com/api/?name=<?php echo urlencode($user['name']); ?>&background=7c3aed&color=fff" class="profile-img">
 
-    <h3><?php echo $user['name']; ?></h3>
-    <!-- <p><?php echo $user['email']; ?></p> -->
-</div>
+    <div class="sidebar">
+
+        <div class="logo">🛍 ShopEasy</div>
+
+        <div class="profile-box">
+
+            <img 
+            src="https://ui-avatars.com/api/?name=<?php echo urlencode($user['name']); ?>&background=7c3aed&color=fff" 
+            class="profile-img">
+
+            <h3><?php echo $user['name']; ?></h3>
+
+            <p><?php echo $user['email']; ?></p>
+
+        </div>
 
         <ul>
-            <li class="active">🏠 Home</li>
-        
-            <li><a href="profile.php">📦 Profile</a></li>
-            <li><a href="orders.php">📦 My Orders</a></li>
-         
-            <li><a href="wishlist_page.php">❤️ Wishlist</a></li>
-            <li><a href="cart.php">🛒 Cart</a></li>
-            <li><a href="logout.php">Logout</a></li>
+            <li class="active">
+                <a href="#">🏠 Dashboard</a>
+            </li>
+
+            <li>
+                <a href="profile.php">👤 My Profile</a>
+            </li>
+
+            <li>
+                <a href="orders.php">📦 My Orders</a>
+            </li>
+
+            <li>
+                <a href="wishlist_page.php">❤️ Wishlist</a>
+            </li>
+
+            <li>
+                <a href="cart.php">🛒 Cart</a>
+            </li>
+
+            <li>
+                <a href="logout.php">🚪 Logout</a>
+            </li>
         </ul>
+
     </div>
 
     <!-- MAIN -->
+
     <div class="main">
 
- 
-<input type="text" id="search" placeholder="Search products..." onkeyup="searchProduct()">
+        <!-- TOPBAR -->
 
+        <div class="topbar">
 
-<!-- <div class="categories">
+            <div class="welcome">
+                Welcome Back 👋
+            </div>
 
-    <div class="cat active" onclick="filterCategory(event,'all')">All</div>
+            <div class="search-box">
+                <input 
+                type="text"
+                id="search"
+                placeholder="Search products..."
+                onkeyup="searchProduct()">
+            </div>
 
-    <div class="cat" onclick="filterCategory(event,'fashion')">👗<br>Fashion</div>
-    <div class="cat" onclick="filterCategory(event,'shoes')">👟<br>Shoes</div>
-    <div class="cat" onclick="filterCategory(event,'bags')">👜<br>Bags</div>
-    <div class="cat" onclick="filterCategory(event,'beauty')">💄<br>Beauty</div>
-    <div class="cat" onclick="filterCategory(event,'electronics')">📱<br>Electronics</div>
-    <div class="cat" onclick="filterCategory(event,'home')">🏠<br>Home</div>
-    <div class="cat" onclick="filterCategory(event,'mens')">👔<br>Mens</div>
-<div class="cat" onclick="filterCategory(event,'womens')">👗<br>Womens</div>
-<div class="cat" onclick="filterCategory(event,'kids')">🧒<br>Kids</div>
-<div class="cat" onclick="filterCategory(event,'jewellery')">💍<br>Jewellery</div>
-<div class="cat" onclick="filterCategory(event,'toys')">🧸<br>Toys</div>
-<div class="cat" onclick="filterCategory(event,'books')">📚<br>Books</div>
+        </div>
 
-</div> -->
+        <!-- STATS -->
 
-<div class="categories">
+        <div class="stats">
 
-    <!-- ALL -->
-    <!-- <div class="cat active" onclick="filterCategory(event,'all')">
-        <div class="circle">All</div>
-    </div> -->
+    <div class="stat-card">
+        <p>📦 Total Orders</p>
 
-    <div class="cat active" onclick="filterCategory(event,'all')">
-    <div class="circle">
-        <img src="data:image/png;base64,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">
+        <h2>
+            <?php echo $total_orders['total']; ?>
+        </h2>
     </div>
-    <p>All</p>
-</div>
 
-    <?php
-    $cats = mysqli_query($conn, "SELECT * FROM categories");
+    <div class="stat-card">
+        <p>❤️ Wishlist Items</p>
 
-    while($c = mysqli_fetch_assoc($cats)){
-    ?>
+        <h2>
+            <?php echo $total_wishlist['total']; ?>
+        </h2>
+    </div>
 
-    <div class="cat" onclick="filterCategory(event,'<?php echo strtolower($c['name']); ?>')">
+    <div class="stat-card">
+        <p>🛒 Cart Items</p>
+<!-- 
+        <h2>
+            <?php echo $total_cart['total']; ?>
+        </h2> -->
 
- 
+        <h2 id="cartCount">0</h2>
+    </div>
 
+    <div class="stat-card">
+        <p>💰 Total Spent</p>
 
-     <div class="circle">
-    <?php if(!empty($c['image'])) { ?>
-        <img 
-            src="<?php echo trim($c['image']); ?>" 
-            onerror="this.onerror=null; this.src='https://via.placeholder.com/70';">
-    <?php } else { ?>
-        <img src="https://via.placeholder.com/70">
-    <?php } ?>
-</div>
-
-
-
-<p class="name"><?php echo ucfirst($c['name']); ?></p>
-</div>
-
-    <?php } ?>
+        <h2>
+            ₹<?php echo $total_spent['amount'] ?? 0; ?>
+        </h2>
+    </div>
 
 </div>
 
+        <!-- CATEGORY -->
 
-<h3>🛍 Explore Products</h3>
+        <div class="categories">
 
-<div class="products">
-    <p id="noResult" style="text-align:center; display:none; color:gray;">
-    No products found 😢
-</p>
+            <div class="cat active" onclick="filterCategory(event,'all')">
 
-<?php
-$products = mysqli_query($conn, "SELECT * FROM products");
+                <div class="circle">
+                    <img src="https://cdn-icons-png.flaticon.com/512/3081/3081559.png">
+                </div>
 
-while($p = mysqli_fetch_assoc($products)){
-?>
+                <p>All</p>
 
-<!-- <div class="card product-card" onclick="openModal(<?php echo htmlspecialchars(json_encode($p)); ?>)"> -->
-   
+            </div>
 
+            <?php
+            $cats = mysqli_query($conn, "SELECT * FROM categories");
 
+            while($c = mysqli_fetch_assoc($cats)){
+            ?>
 
+            <div class="cat"
+            onclick="filterCategory(event,'<?php echo strtolower($c['name']); ?>')">
 
+                <div class="circle">
 
-<div class="card product-card" 
-     data-category="<?php echo strtolower($p['category']); ?>"
-     
-    onclick="window.location.href='product_detail.php?id=<?php echo $p['id']; ?>'">
+                    <img 
+                    src="<?php echo trim($c['image']); ?>"
+                    onerror="this.src='https://via.placeholder.com/70';">
 
-    <img src="<?php echo $p['image']; ?>">
+                </div>
 
-    <p class="category"><?php echo ucfirst($p['category']); ?></p>
+                <p><?php echo ucfirst($c['name']); ?></p>
 
-    <h3><?php echo substr($p['name'],0,25); ?>...</h3>
+            </div>
 
-    <p class="desc">
-        <?php echo substr($p['description'],0,40); ?>...
-    </p>
+            <?php } ?>
 
-    <p class="price">
-        ₹<?php echo $p['discount_price']; ?>
-        <span class="old-price">₹<?php echo $p['price']; ?></span>
-    </p>
+        </div>
 
-   <?php 
-$discount = 0;
-if($p['price'] > 0){
-    $discount = round((($p['price'] - $p['discount_price'])/$p['price']) * 100);
-}
-?>
+        <!-- PRODUCTS -->
 
-<span class="badge"><?php echo $discount; ?>% OFF</span>
-<p class="delivery">Free Delivery</p>
+        <h2 class="section-title">🔥 Trending Products</h2>
+
+        <div class="products">
+
+        <?php while($p = mysqli_fetch_assoc($products)){ ?>
+
+        <?php
+        $discount = 0;
+
+        if($p['price'] > 0){
+            $discount = round(
+                (($p['price'] - $p['discount_price']) / $p['price']) * 100
+            );
+        }
+        ?>
+
+        <div class="card product-card"
+
+        data-category="<?php echo strtolower($p['category']); ?>"
+
+        onclick="window.location.href='product_detail.php?id=<?php echo $p['id']; ?>'">
+
+            <span class="badge">
+                <?php echo $discount; ?>% OFF
+            </span>
+
+            <img src="<?php echo $p['image']; ?>">
+
+            <div class="card-body">
+
+                <p class="category">
+                    <?php echo ucfirst($p['category']); ?>
+                </p>
+
+                <h3>
+                    <?php echo substr($p['name'],0,25); ?>
+                </h3>
+
+                <p class="desc">
+                    <?php echo substr($p['description'],0,50); ?>...
+                </p>
+
+                <div class="price">
+
+                    ₹<?php echo $p['discount_price']; ?>
+
+                    <span class="old-price">
+                        ₹<?php echo $p['price']; ?>
+                    </span>
+
+                </div>
+
+                <p class="delivery">🚚 Free Delivery</p>
+
+                <div class="card-buttons">
+
+    <button 
+    class="btn cart-btn"
+    onclick="event.stopPropagation(); addToCart(<?php echo $p['id']; ?>)">
+    
+        Add Cart
+    </button>
+
+    <button 
+    class="btn buy-btn"
+    onclick="event.stopPropagation(); buyNow(<?php echo $p['id']; ?>)">
+        Buy Now
+    </button>
 
 </div>
-   <?php } ?>
 
+            </div>
 
+        </div>
 
+        <?php } ?>
 
-
-</div>
-
-        <!-- ORDERS -->
-       
+        </div>
 
     </div>
+
 </div>
+
 <script>
 
 function searchProduct(){
-    let input = document.getElementById("search").value.toLowerCase();
-    let cards = document.querySelectorAll(".product-card");
-    let found = false;
+
+    let input =
+    document.getElementById("search")
+    .value
+    .toLowerCase();
+
+    let cards =
+    document.querySelectorAll(".product-card");
 
     cards.forEach(card => {
-        let name = card.querySelector("h3").innerText.toLowerCase();
+
+        let name =
+        card.querySelector("h3")
+        .innerText
+        .toLowerCase();
 
         if(name.includes(input)){
             card.style.display = "block";
-            found = true;
-        } else {
+        }else{
             card.style.display = "none";
         }
+
     });
-
-    document.getElementById("noResult").style.display = found ? "none" : "block";
 }
-
-
-let currentProduct = null;
-
-function openModal(product){
-    currentProduct = product;
-
-    document.getElementById("productModal").style.display = "block";
-
-    document.getElementById("mImg").src = product.image;
-    document.getElementById("mName").innerText = product.name;
-    document.getElementById("mDesc").innerText = product.description;
-    document.getElementById("mPrice").innerText = "₹" + product.discount_price;
-
-    // sizes
-    let sizeHTML = "";
-
-    if(product.category.toLowerCase() === "fashion"){
-        ["S","M","L","XL"].forEach(s => {
-            sizeHTML += `<button onclick="selectSizeModal('${s}')">${s}</button>`;
-        });
-    } 
-    else if(product.category.toLowerCase() === "shoes"){
-        ["6","7","8","9","10"].forEach(s => {
-            sizeHTML += `<button onclick="selectSizeModal('${s}')">${s}</button>`;
-        });
-    } 
-    else {
-        sizeHTML = "<p>No size required</p>";
-    }
-
-    document.getElementById("mSizes").innerHTML = sizeHTML;
-}
-
-let selectedSizeModal = null;
-
-function selectSizeModal(size){
-    selectedSizeModal = size;
-    alert("Selected: " + size);
-}
-
-function addToCartModal(){
-    if(!selectedSizeModal){
-        alert("Select size first");
-        return;
-    }
-
-    let cart = JSON.parse(localStorage.getItem("cart")) || [];
-
-    cart.push({
-        id: currentProduct.id,
-        size: selectedSizeModal,
-        qty: 1
-    });
-
-    localStorage.setItem("cart", JSON.stringify(cart));
-
-    alert("Added to cart");
-}
-
-function buyNowModal(){
-    if(!selectedSizeModal){
-        alert("Select size first");
-        return;
-    }
-
-    localStorage.setItem("buyNow", JSON.stringify({
-        id: currentProduct.id,
-        size: selectedSizeModal,
-        qty: 1
-    }));
-
-    window.location.href = "product_details.php";
-}
-
-// let selectedSizes = {};
-// function selectSize(productId, size){
-//     // store in memory (not localStorage)
-//     selectedSizes[productId] = size;
-
-//     document.getElementById("selected_" + productId).innerText =
-//         "✔ Selected: " + size;
-
-//     let buttons = document.querySelectorAll("#sizes_" + productId + " button");
-
-//     buttons.forEach(btn => {
-//         btn.classList.remove("active-size");
-//         if(btn.innerText.trim() == size){
-//             btn.classList.add("active-size");
-//         }
-//     });
-// }
-
-
-// function openModal(product){
-//     document.getElementById("productModal").style.display = "block";
-
-//     document.getElementById("mImg").src = product.image;
-//     document.getElementById("mName").innerText = product.name;
-//     document.getElementById("mDesc").innerText = product.description;
-//     document.getElementById("mPrice").innerText = "₹" + product.discount_price;
-// }
-
-// function addToCart(id){
-//     console.log("Add to cart clicked", id);
-//     let size = getSize(id);
-//     if(!size) return;
-
-//     let cart = JSON.parse(localStorage.getItem("cart")) || [];
-
-//     cart.push({
-//         id: id,
-//         size: size,
-//         qty: 1
-//     });
-
-//     localStorage.setItem("cart", JSON.stringify(cart));
-
-//     alert("Added to Cart 🛒");
-    
-//     window.location.href = "cart.php";
-// }
-
-// function buyNow(id){
-//     let size = getSize(id);
-//     if(!size) return;
-
-//     let product = {
-//         id: id,
-//         size: size,
-//         qty: 1
-//     };
-
-//     localStorage.setItem("buyNow", JSON.stringify(product));
-
-//     window.location.href = "product_details.php";
-// }
-
 
 function filterCategory(e, category){
 
-    let cards = document.querySelectorAll(".product-card");
-    let cats = document.querySelectorAll(".cat");
+    let cards =
+    document.querySelectorAll(".product-card");
 
-    // remove active
-    cats.forEach(c => c.classList.remove("active"));
+    let cats =
+    document.querySelectorAll(".cat");
 
-    // add active to clicked
+    cats.forEach(c =>
+        c.classList.remove("active")
+    );
+
     e.currentTarget.classList.add("active");
 
-    // filter products
     cards.forEach(card => {
 
-        let productCategory = card.getAttribute("data-category");
+        let productCategory =
+        card.getAttribute("data-category");
 
-        if(category === "all" || productCategory === category){
+        if(category === "all" ||
+        //    productCategory === category
+           productCategory.includes(category)
+        ){
+
             card.style.display = "block";
-        } else {
+
+        }else{
+
             card.style.display = "none";
         }
 
@@ -375,50 +706,76 @@ function filterCategory(e, category){
 
 
 
+/* ================= CART COUNT ================= */
+
+let cart =
+JSON.parse(localStorage.getItem("cart")) || [];
+
+let totalItems = 0;
+
+cart.forEach(item => {
+
+    totalItems += item.qty || 1;
+
+});
+
+document.getElementById("cartCount")
+.innerText = totalItems;
 
 
 
 
 
-function closeModal(){
-    document.getElementById("productModal").style.display = "none";
+
+
+function addToCart(productId){
+
+    let cart =
+    JSON.parse(localStorage.getItem("cart")) || [];
+
+    /* CHECK PRODUCT ALREADY EXISTS */
+
+    let existingProduct =
+    cart.find(item =>
+        item.id == productId &&
+        item.size == "N/A"
+    );
+
+    if(existingProduct){
+
+        existingProduct.qty += 1;
+
+    }else{
+
+        cart.push({
+
+            id: productId,
+
+            size: "N/A",
+
+            qty: 1
+
+        });
+    }
+
+    localStorage.setItem(
+        "cart",
+        JSON.stringify(cart)
+    );
+
+    alert("🛒 Product added to cart");
+
+    location.reload();
 }
 
+function buyNow(productId){
 
-function addToWishlist(id){
-    fetch("wishlist.php", {
-        method: "POST",
-        headers: {"Content-Type": "application/x-www-form-urlencoded"},
-        body: "product_id=" + id
-    })
-    .then(res => res.text())
-    .then(() => alert("Added to Wishlist ❤️"));
+    window.location.href =
+    "product_detail.php?id=" + productId;
+
 }
-
 
 </script>
 
-
-<div id="productModal" class="modal">
-    <div class="modal-content">
-
-        <span onclick="closeModal()" class="close">&times;</span>
-
-        <img id="mImg">
-
-        <h2 id="mName"></h2>
-        <p id="mDesc"></p>
-
-        <h3 id="mPrice"></h3>
-
-        <!-- SIZE -->
-        <div id="mSizes"></div>
-
-        <!-- BUTTONS -->
-        <button onclick="addToCartModal()">🛒 Add to Cart</button>
-        <button onclick="buyNowModal()">⚡ Buy Now</button>
-
-    </div>
-</div>
 </body>
 </html>
