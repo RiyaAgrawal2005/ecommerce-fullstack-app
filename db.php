@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 <?php
 
 $server = $_SERVER['HTTP_HOST'];
@@ -12,6 +5,7 @@ $server = $_SERVER['HTTP_HOST'];
 if ($server == "localhost") {
 
     // Localhost Database
+
     $conn = mysqli_connect(
         "localhost",
         "root",
@@ -22,12 +16,13 @@ if ($server == "localhost") {
 } else {
 
     // Live Hosting Database
+
     $conn = mysqli_connect(
-    "sql212.infinityfree.com",
-    "if0_41834050",
-    "UXA9wy7hFLG",
-    "if0_41834050_ecommerce"
-);
+        "YOUR_HOST",
+        "YOUR_USERNAME",
+        "YOUR_PASSWORD",
+        "YOUR_DATABASE"
+    );
 }
 
 if (!$conn) {
